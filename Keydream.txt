@@ -1,0 +1,57 @@
+#https://crypto.stackexchange.com/questions/5644/attacks-on-the-rsa-cryptosystem
+Sau khi tìm hiểu thì có link trên nói về việc biết trc msb và lsb của p (p<q<2p,p,q là ước nt của n), tổng số bit cả 2 hơn 1/4 số bit của n 
+thì có thể reveal toàn bộ p (phát triển từ định lý Coppersmith). Ở đây đọc source ta biết được trước 21*8 bit đầu và 16*8 bit cuối của p, 
+đủ để thực hiện định lý trên.
+-----------------------------------------------------------------------------------------------------------------------------------------
+#code sage tìm p
+p=3522849404943379554064409676642225828656159795234158114564476927018034259413095897900236841191372744803949808281395218075219891597922096596837752736129405
+N=23087202318856030774680571525957068827041569782431397956837104908189620961469336659300387982516148407611623358654041246574100274275974799587138270853364165853708786079644741407579091918180874935364024818882648063256767259283714592098555858095373381673229188828791636142379379969143042636324982275996627729079
+ 
+sizep=p.nbits()
+#lấy 21*8 bit đầu và 16*8 bit cuối
+p_msb = (p >> (64-21)*8) << (64-21)*8
+p_lsb = p % (2**(16*8))
+ 
+R = 2**(16*8)
+invR = inverse_mod(R,N)
+ 
+F.<x> = PolynomialRing(Zmod(N))
+#define the poly in x modulo p
+f = x + (p_msb+p_lsb)*invR
+#solve it
+x0 = f.small_roots(X=2^(512-37*8)-1, beta=0.44, epsilon=1/64)[0]
+#Note: I used beta=0.44 instead of .5 because it's faster, don't know why.
+#note: if you reduce epsilon up to 1/512 you will be able to reduce knownbits up to 128
+ 
+print ("p    : {:x}".format(p))
+print ("p_msb: {:x}".format(p_msb))
+print ("p_lsb: {:x}".format(p_lsb))
+#print "R    : {:x}".format(R)
+print ("found small root: {:x}".format(Integer(x0)))
+print ("reconstructed p: {:x}".format(Integer(x0*R)+p_msb+p_lsb))
+print ("Is it equal to p ??  %s" %(Integer(x0*R)+p_msb+p_lsb == p))
+
+#p    : 434354467b69745f69735f66616b655f666c61675f6161616161616161616161616161616161616161616161616161615f39304f445f6c75436b5f5f5f21217d
+#p_msb: 434354467b69745f69735f66616b655f666c61675f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+#p_lsb: 5f39304f445f6c75436b5f5f5f21217d
+#found small root: 57616f71314a69784d354143676a796e626b4e6a3943746c646961
+#reconstructed p: 434354467b69745f69735f66616b655f666c61675f57616f71314a69784d354143676a796e626b4e6a3943746c6469615f39304f445f6c75436b5f5f5f21217d
+#Is it equal to p ??  False
+---------------------------------------------------------------------------------------------------------------------------------------------
+#python giải rsa sau khi có p,q 
+from Crypto.Util.number import bytes_to_long, long_to_bytes,getPrime, inverse
+
+
+n = 23087202318856030774680571525957068827041569782431397956837104908189620961469336659300387982516148407611623358654041246574100274275974799587138270853364165853708786079644741407579091918180874935364024818882648063256767259283714592098555858095373381673229188828791636142379379969143042636324982275996627729079
+c = 3621516728616736303019716820373078604485184090642291670706733720518953475684497936351864366709813094154736213978864841551795776449242009307288704109630747654430068522939150168228783644831299534766861590666590062361030323441362406214182358585821009335369275098938212859113101297279381840308568293108965668609
+str = b'CCTF{it_is_fake_flag_aaaaaaaaaaaaaaaaaaaaaaaaaaa_90OD_luCk___!!}'
+rstr=str[::-1]
+ans="434354467b69745f69735f66616b655f666c61675f57616f71314a69784d354143676a796e626b4e6a3943746c6469615f39304f445f6c75436b5f5f5f21217d"
+p=int(ans,16)
+q=n//p
+e=65537
+phi=(p-1)*(q-1)
+d=inverse(e,phi)
+print(long_to_bytes(pow(c,d,n)))
+
+#b'Congratz, the flag is: CCTF{h0M3_m4dE_k3Y_Dr1vEn_CrYp7O_5ySTeM!}'
