@@ -14,7 +14,7 @@ ans=2
 for i in range(2,pow(2,19)):
 	if isPrime(i):
 		k=int(math.log(n,i))
-        ans=pow(ans,i*k,n)
+        	ans=pow(ans,i*k,n)
         
 p=gcd(ans-1,n)
 q=n//p
